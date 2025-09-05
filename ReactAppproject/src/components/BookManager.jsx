@@ -1,0 +1,196 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './style.css';
+import config from './config.js';
+
+const BookManager = () => {
+  const [books, setBooks] = useState([]);
+  const [book, setBook] = useState({
+    id: '',
+    title: '',
+    author: '',
+  });
+
+  const [idToFetch, setIdToFetch] = useState('');
+  const [fetchedBook, setFetchedBook] = useState(null);
+  const [message, setMessage] = useState('');
+  const [editMode, setEditMode] = useState(false);
+
+  const baseUrl = `${config.url}/books`;
+
+  useEffect(() => {
+    fetchAllBooks();
+  }, []);
+
+  const fetchAllBooks = async () => {
+    try {
+      const res = await axios.get(`${baseUrl}/all`);
+      setBooks(res.data);
+    } catch (error) {
+      setMessage('Failed to fetch books.');
+    }
+  };
+
+  const handleChange = (e) => {
+    setBook({ ...book, [e.target.name]: e.target.value });
+  };
+
+  const validateForm = () => {
+    for (let key in book) {
+      if (!book[key] || book[key].toString().trim() === '') {
+        setMessage(`Please fill out the ${key} field.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const addBook = async () => {
+    if (!validateForm()) return;
+    try {
+      await axios.post(`${baseUrl}/add`, book);
+      setMessage('Book added successfully.');
+      fetchAllBooks();
+      resetForm();
+    } catch (error) {
+      setMessage('Error adding book.');
+    }
+  };
+
+  const updateBook = async () => {
+    if (!validateForm()) return;
+    try {
+      await axios.put(`${baseUrl}/update`, book);
+      setMessage('Book updated successfully.');
+      fetchAllBooks();
+      resetForm();
+    } catch (error) {
+      setMessage('Error updating book.');
+    }
+  };
+
+  const deleteBook = async (id) => {
+    try {
+      const res = await axios.delete(`${baseUrl}/delete/${id}`);
+      setMessage(res.data);
+      fetchAllBooks();
+    } catch (error) {
+      setMessage('Error deleting book.');
+    }
+  };
+
+  const getBookById = async () => {
+    try {
+      const res = await axios.get(`${baseUrl}/get/${idToFetch}`);
+      setFetchedBook(res.data);
+      setMessage('');
+    } catch (error) {
+      setFetchedBook(null);
+      setMessage('Book not found.');
+    }
+  };
+
+  const handleEdit = (book) => {
+    setBook(book);
+    setEditMode(true);
+    setMessage(`Editing book with ID ${book.id}`);
+  };
+
+  const resetForm = () => {
+    setBook({
+      id: '',
+      title: '',
+      author: '',
+    });
+    setEditMode(false);
+  };
+
+  return (
+    <div className="book-container">
+
+      {message && (
+        <div className={`message-banner ${message.toLowerCase().includes('error') ? 'error' : 'success'}`}>
+          {message}
+        </div>
+      )}
+
+      <h2>Book Management</h2>
+
+      <div>
+        <h3>{editMode ? 'Edit Book' : 'Add Book'}</h3>
+        <div className="form-grid">
+          <input type="number" name="id" placeholder="ID" value={book.id} onChange={handleChange} />
+          <input type="text" name="title" placeholder="Title" value={book.title} onChange={handleChange} />
+          <input type="text" name="author" placeholder="Author" value={book.author} onChange={handleChange} />
+        </div>
+
+        <div className="btn-group">
+          {!editMode ? (
+            <button className="btn-blue" onClick={addBook}>Add Book</button>
+          ) : (
+            <>
+              <button className="btn-green" onClick={updateBook}>Update Book</button>
+              <button className="btn-gray" onClick={resetForm}>Cancel</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3>Get Book By ID</h3>
+        <input
+          type="number"
+          value={idToFetch}
+          onChange={(e) => setIdToFetch(e.target.value)}
+          placeholder="Enter ID"
+        />
+        <button className="btn-blue" onClick={getBookById}>Fetch</button>
+
+        {fetchedBook && (
+          <div>
+            <h4>Book Found:</h4>
+            <pre>{JSON.stringify(fetchedBook, null, 2)}</pre>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3>All Books</h3>
+        {books.length === 0 ? (
+          <p>No books found.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  {Object.keys(book).map((key) => (
+                    <th key={key}>{key}</th>
+                  ))}
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {books.map((book) => (
+                  <tr key={book.id}>
+                    {Object.keys(book).map((key) => (
+                      <td key={key}>{book[key]}</td>
+                    ))}
+                    <td>
+                      <div className="action-buttons">
+                        <button className="btn-green" onClick={() => handleEdit(book)}>Edit</button>
+                        <button className="btn-red" onClick={() => deleteBook(book.id)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+};
+
+export default BookManager;
