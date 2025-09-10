@@ -13,7 +13,7 @@ import com.klef.dev.service.BookService;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
-@RequestMapping("/books")
+@RequestMapping("/books/")
 @CrossOrigin(origins = "*")
 public class BookController {
 
